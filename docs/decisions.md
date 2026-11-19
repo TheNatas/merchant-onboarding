@@ -2,6 +2,7 @@
 
 ## Summary
 - **Stack:** TypeScript, Express 5, Zod 4, Jest and supertest. NestJS and Playwright were considered and rejected as too heavy for one endpoint with no UI.
+- **AI assistance:** built with Kiro CLI and Claude models (selected automatically by Kiro's Auto mode). The decisions on stack, behaviour and scope are mine, and I reviewed the code, tests and docs.
 - **Behaviour:** inputs are trimmed, `country` is stored uppercase, and a new merchant is saved as `PENDING` with a creation time. Status codes: `201`, `400` (invalid input), `409` (duplicate).
 - **Duplicates:** `externalMerchantId` is unique ignoring letter case, checked atomically in the repository.
 - **Storage:** in memory behind a `MerchantRepository` interface. For production: PostgreSQL with a unique index on `lower(external_merchant_id)`.
