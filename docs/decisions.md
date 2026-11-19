@@ -25,7 +25,7 @@
 ## Architecture
 - `createApp(repository)` builds the Express app with injected dependencies, so tests use an in-memory repository.
 - Layers: route/handler -> Zod schema (validation) -> service -> `MerchantRepository` interface.
-- The similarity rule lives in `merchant-similarity.policy.ts`, a domain policy made of pure functions. The repository only provides plain lookups (`findByNormalizedCompanyName`, `findByContactEmail`). A future database repository therefore cannot define "similar" differently from the in-memory one.
+- The similarity rule lives in `similarity.policy.ts`, a domain policy made of pure functions. The repository only provides plain lookups (`findByNormalizedCompanyName`, `findByContactEmail`). A future database repository therefore cannot define "similar" differently from the in-memory one.
 - Text normalization (company name, email, external ID) is in `normalize.ts`. It is shared by the policy and the repository.
 - Errors: a `DuplicateMerchantError` is mapped to HTTP 409 by an error-handling middleware. Validation failures return 400 with per-field messages.
 

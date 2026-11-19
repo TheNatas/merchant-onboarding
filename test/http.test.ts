@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { createApp } from '../src/app';
-import { InMemoryMerchantRepository } from '../src/merchants/merchant.repository';
+import { InMemoryMerchantRepository } from '../src/merchants/repository';
 
 const valid = {
   companyName: 'Northstar Ltd',

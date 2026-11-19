@@ -1,6 +1,6 @@
 import { DuplicateMerchantError, SimilarMerchantError } from '../src/errors';
-import { InMemoryMerchantRepository } from '../src/merchants/merchant.repository';
-import { MerchantService } from '../src/merchants/merchant.service';
+import { InMemoryMerchantRepository } from '../src/merchants/repository';
+import { MerchantService } from '../src/merchants/service';
 
 const input = {
   companyName: 'Northstar Ltd',

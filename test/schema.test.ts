@@ -1,4 +1,4 @@
-import { parseRegisterMerchant } from '../src/merchants/merchant.schema';
+import { parseRegisterMerchant } from '../src/merchants/schema';
 
 const valid = {
   companyName: 'Northstar Ltd',

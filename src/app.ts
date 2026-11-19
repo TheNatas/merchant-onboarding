@@ -1,8 +1,8 @@
 import express, { ErrorRequestHandler } from 'express';
 import { DuplicateMerchantError, SimilarMerchantError } from './errors';
-import { MerchantRepository } from './merchants/merchant.repository';
-import { merchantRoutes } from './merchants/merchant.routes';
-import { Clock, MerchantService } from './merchants/merchant.service';
+import { MerchantRepository } from './merchants/repository';
+import { merchantRoutes } from './merchants/routes';
+import { Clock, MerchantService } from './merchants/service';
 
 export interface AppDeps {
   repository: MerchantRepository;

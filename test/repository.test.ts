@@ -1,5 +1,5 @@
 import { DuplicateMerchantError } from '../src/errors';
-import { InMemoryMerchantRepository, Merchant } from '../src/merchants/merchant.repository';
+import { InMemoryMerchantRepository, Merchant } from '../src/merchants/repository';
 
 const make = (externalMerchantId: string): Merchant => ({
   id: externalMerchantId,

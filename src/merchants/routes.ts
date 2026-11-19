@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { parseRegisterMerchant } from './merchant.schema';
-import { MerchantService } from './merchant.service';
+import { parseRegisterMerchant } from './schema';
+import { MerchantService } from './service';
 
 export function merchantRoutes(service: MerchantService): Router {
   const router = Router();

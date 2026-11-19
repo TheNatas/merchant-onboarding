@@ -1,4 +1,4 @@
-import { Merchant, MerchantRepository } from './merchant.repository';
+import { Merchant, MerchantRepository } from './repository';
 import { normalizeCompanyName, normalizeEmail } from './normalize';
 
 /**
