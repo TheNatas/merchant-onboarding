@@ -1,5 +1,5 @@
 import { DuplicateMerchantError } from '../errors';
-import { SimilarityReason, similarityReasons } from './similarity';
+import { SimilarityReason, similarityReasons } from './merchant.similarity';
 
 export type MerchantStatus = 'PENDING';
 

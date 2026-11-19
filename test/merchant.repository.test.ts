@@ -35,3 +35,37 @@ describe('InMemoryMerchantRepository', () => {
     await expect(repo.create(make('a-2'))).resolves.toBeDefined();
   });
 });
+
+describe('InMemoryMerchantRepository.exists', () => {
+  it('ignores case and surrounding whitespace', async () => {
+    const repo = new InMemoryMerchantRepository();
+    await repo.create(make('Northstar-001'));
+    await expect(repo.exists(' northstar-001 ')).resolves.toBe(true);
+    await expect(repo.exists('northstar-002')).resolves.toBe(false);
+  });
+});
+
+describe('InMemoryMerchantRepository.findSimilar', () => {
+  const candidate = { companyName: 'Acme Inc', contactEmail: 'hello@acme.example' };
+
+  it('returns nothing when the repository is empty or nothing matches', async () => {
+    const repo = new InMemoryMerchantRepository();
+    await expect(repo.findSimilar(candidate)).resolves.toEqual([]);
+    await repo.create(make('a-1'));
+    await expect(repo.findSimilar(candidate)).resolves.toEqual([]);
+  });
+
+  it('returns every matching merchant with its reasons', async () => {
+    const repo = new InMemoryMerchantRepository();
+    const byName = { ...make('a-1'), companyName: 'ACME, Incorporated' };
+    const byEmail = { ...make('a-2'), companyName: 'Different', contactEmail: 'HELLO@acme.example' };
+    await repo.create(byName);
+    await repo.create(byEmail);
+    await repo.create(make('a-3'));
+    const found = await repo.findSimilar(candidate);
+    expect(found).toEqual([
+      { merchant: byName, reasons: ['SAME_COMPANY_NAME'] },
+      { merchant: byEmail, reasons: ['SAME_CONTACT_EMAIL'] },
+    ]);
+  });
+});

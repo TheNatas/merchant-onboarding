@@ -53,6 +53,8 @@ Similarity rules (deliberately conservative):
 
 **This does not make the API stateful.** The server keeps nothing between the two requests. The confirmation is a field in the second request, and the server repeats all checks from scratch. The warning is advisory: another merchant may be added between the two requests, and only the ID uniqueness check is atomic.
 
+**Status of this feature:** the similarity warning is a bonus that goes beyond the exercise text. It comes from my own interpretation of "prevent duplicate registrations": exact ID matches are blocked, and likely repeat registrations are flagged. Before building it in a real scenario, the stakeholders (for example onboarding operations and compliance) should decide whether it is wanted, which signals count as similar, and whether a match should warn, block or send the registration to manual review.
+
 **Costs to consider**
 - **Slowness:** similarity needs a search over existing merchants, not a key lookup. The in-memory version scans every merchant. In production this needs an index, for example a stored normalized company name column with an index, or `pg_trgm` if fuzzy matching is added. An unindexed scan on every registration would not scale.
 - **Annoyed users:** every false positive makes a legitimate user stop and confirm. Rules stay strict (equality after normalization, no fuzzy distance), and the response says which rule matched so the user can decide quickly. Shared mailboxes (`info@`, `ops@` of a group of companies) will trigger `SAME_CONTACT_EMAIL` for real distinct merchants. Track how often warnings are overridden, and loosen or drop a rule that is nearly always overridden.

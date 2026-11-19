@@ -1,4 +1,4 @@
-import { normalizeCompanyName, similarityReasons } from '../src/merchants/similarity';
+import { normalizeCompanyName, similarityReasons } from '../src/merchants/merchant.similarity';
 
 describe('normalizeCompanyName', () => {
   it.each([

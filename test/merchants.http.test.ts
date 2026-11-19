@@ -139,3 +139,32 @@ describe('POST /merchants similarity warning', () => {
     expect(res.body.details).toEqual([{ field: 'confirmSimilar', message: 'must be of type boolean' }]);
   });
 });
+
+describe('POST /merchants robustness', () => {
+  it('returns 400 for a non-JSON content type', async () => {
+    const res = await request(newApp()).post('/merchants').set('Content-Type', 'text/plain').send('hello');
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('VALIDATION_ERROR');
+  });
+
+  it('returns 500 without leaking internals when the repository fails', async () => {
+    const failing = new InMemoryMerchantRepository();
+    failing.exists = async () => {
+      throw new Error('database password is hunter2');
+    };
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const res = await request(createApp({ repository: failing })).post('/merchants').send(valid);
+    spy.mockRestore();
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'INTERNAL_ERROR', message: 'Unexpected error' });
+  });
+
+  it('does not match merchants that only share part of a name', async () => {
+    const app = newApp();
+    await request(app).post('/merchants').send(valid).expect(201);
+    await request(app)
+      .post('/merchants')
+      .send({ ...valid, companyName: 'Northstar Logistics', contactEmail: 'a@b.example', externalMerchantId: 'x-1' })
+      .expect(201);
+  });
+});

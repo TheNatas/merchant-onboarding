@@ -59,4 +59,17 @@ describe('parseRegisterMerchant', () => {
   it('reports all invalid fields at once', () => {
     expect(fieldsOf({})).toHaveLength(4);
   });
+
+  it('accepts an optional boolean confirmSimilar and rejects other types', () => {
+    expect(parseRegisterMerchant({ ...valid, confirmSimilar: true })).toEqual({
+      success: true,
+      data: { ...valid, confirmSimilar: true },
+    });
+    expect(fieldsOf({ ...valid, confirmSimilar: 'true' })).toEqual(['confirmSimilar']);
+    expect(fieldsOf({ ...valid, confirmSimilar: null })).toEqual(['confirmSimilar']);
+  });
+
+  it('rejects an array body', () => {
+    expect(fieldsOf([valid])).toEqual(['(body)']);
+  });
 });
