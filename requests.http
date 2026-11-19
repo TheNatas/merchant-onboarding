@@ -1,0 +1,106 @@
+# Manual requests for the merchant onboarding API.
+# Works with the VS Code "REST Client" extension and with JetBrains IDEs (HTTP Client).
+# Start the server first: npm run dev
+#
+# Merchants are kept in memory, so results depend on what was sent before.
+# Run the requests from top to bottom on a freshly started server, or change the IDs.
+# Restarting the server clears all merchants.
+
+@baseUrl = http://localhost:3000
+
+### 1. Register a merchant (expect 201). Input is trimmed and the country is uppercased.
+POST {{baseUrl}}/merchants
+Content-Type: application/json
+
+{
+  "companyName": "  Northstar Ltd ",
+  "contactEmail": "ops@northstar.example",
+  "country": "gb",
+  "externalMerchantId": "northstar-001"
+}
+
+### 2. Same externalMerchantId again (expect 409 DUPLICATE_MERCHANT)
+POST {{baseUrl}}/merchants
+Content-Type: application/json
+
+{
+  "companyName": "Northstar Ltd",
+  "contactEmail": "ops@northstar.example",
+  "country": "GB",
+  "externalMerchantId": "northstar-001"
+}
+
+### 3. Same ID in a different case (expect 409 DUPLICATE_MERCHANT)
+POST {{baseUrl}}/merchants
+Content-Type: application/json
+
+{
+  "companyName": "Another Company",
+  "contactEmail": "other@example.com",
+  "country": "US",
+  "externalMerchantId": "NORTHSTAR-001"
+}
+
+### 4. New ID, but the company name looks like request 1 (expect 409 SIMILAR_MERCHANT_FOUND, nothing saved)
+POST {{baseUrl}}/merchants
+Content-Type: application/json
+
+{
+  "companyName": "NORTHSTAR, Limited",
+  "contactEmail": "sales@northstar.example",
+  "country": "GB",
+  "externalMerchantId": "northstar-002"
+}
+
+### 5. Same request as 4, confirming it is a different merchant (expect 201)
+POST {{baseUrl}}/merchants
+Content-Type: application/json
+
+{
+  "companyName": "NORTHSTAR, Limited",
+  "contactEmail": "sales@northstar.example",
+  "country": "GB",
+  "externalMerchantId": "northstar-002",
+  "confirmSimilar": true
+}
+
+### 6. Several invalid fields at once (expect 400 VALIDATION_ERROR with a detail per field)
+POST {{baseUrl}}/merchants
+Content-Type: application/json
+
+{
+  "companyName": "A",
+  "contactEmail": "not-an-email",
+  "country": "GBR"
+}
+
+### 7. Missing and wrongly typed fields (expect 400 VALIDATION_ERROR)
+POST {{baseUrl}}/merchants
+Content-Type: application/json
+
+{
+  "companyName": 42,
+  "contactEmail": "ops@example.com",
+  "country": "DE",
+  "confirmSimilar": "yes"
+}
+
+### 8. Malformed JSON (expect 400 INVALID_JSON)
+POST {{baseUrl}}/merchants
+Content-Type: application/json
+
+{ "companyName":
+
+### 9. Unrelated merchant (expect 201)
+POST {{baseUrl}}/merchants
+Content-Type: application/json
+
+{
+  "companyName": "Blue River GmbH",
+  "contactEmail": "info@blueriver.example",
+  "country": "de",
+  "externalMerchantId": "blue-river-1"
+}
+
+### 10. Unknown route (expect 404 NOT_FOUND)
+GET {{baseUrl}}/merchants
