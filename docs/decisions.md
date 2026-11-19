@@ -25,9 +25,34 @@
 ## Architecture
 - `createApp(repository)` builds the Express app with injected dependencies, so tests use an in-memory repository.
 - Layers: route/handler -> Zod schema (validation) -> service -> `MerchantRepository` interface.
-- The similarity rule lives in `similarity.policy.ts`, a domain policy made of pure functions. The repository only provides plain lookups (`findByNormalizedCompanyName`, `findByContactEmail`). A future database repository therefore cannot define "similar" differently from the in-memory one.
+- The similarity rule lives in `similarity.ts`, a domain policy made of pure functions. The repository only provides plain lookups (`findByNormalizedCompanyName`, `findByContactEmail`). A future database repository therefore cannot define "similar" differently from the in-memory one.
 - Text normalization (company name, email, external ID) is in `normalize.ts`. It is shared by the policy and the repository.
 - Errors: a `DuplicateMerchantError` is mapped to HTTP 409 by an error-handling middleware. Validation failures return 400 with per-field messages.
+
+## Code layout and how it would grow
+Today `src/merchants/` is flat, with one file per role: `routes.ts`, `schema.ts`, `service.ts`, `repository.ts`, `similarity.ts` (a domain policy, see the comment at the top of the file) and `normalize.ts` (text utilities). Files are named by the concept they hold, and a role suffix is used only for well-known roles (`.test`). The `merchant` prefix is not repeated because the folder already says it.
+
+This is enough for one use case. When more use cases arrive (for example approve, update or list), or the folder reaches about 8 to 10 files, structure gets added. Two options were considered, and the choice is deferred until it is needed:
+
+1. **Group by kind of file**, one folder per role, with an `index.ts` that exports each folder's contents:
+   ```
+   merchants/
+     services/register.ts, approve.ts, index.ts
+     policies/similarity.ts, index.ts
+     utils/normalize.ts, index.ts
+     repository.ts, schema.ts, routes.ts
+   ```
+   Each kind of file has a known place, so finding "all policies" is easy. Related files for one use case end up in different folders.
+2. **Group by use case** (vertical slices), with plain role names inside:
+   ```
+   merchants/
+     register/service.ts, schema.ts, routes.ts
+     similarity/similarity.ts, normalize.ts
+     repository.ts
+   ```
+   All files that change together live together. Shared pieces stay at the `merchants/` level.
+
+Either option avoids repeating the same information twice, so a `register/` folder would not also contain `register.service.ts`. A uniform `<concept>.<role>.ts` naming (for example `register.service.ts`) was also considered. It was rejected for now because with one use case the concept part only repeats the folder name, and it would require one service class per use case. It becomes a reasonable choice if the folder stays flat while the number of use cases grows.
 
 ## Behaviour decisions
 - **Normalization:** all string inputs are trimmed. `country` is stored uppercase.

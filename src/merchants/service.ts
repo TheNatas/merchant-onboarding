@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { SimilarMerchantError } from '../errors';
-import { findSimilarMerchants } from './similarity.policy';
+import { findSimilarMerchants } from './similarity';
 import { Merchant, MerchantRepository } from './repository';
 import { RegisterMerchantInput } from './schema';
 

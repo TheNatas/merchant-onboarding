@@ -1,5 +1,5 @@
 import { InMemoryMerchantRepository, Merchant } from '../src/merchants/repository';
-import { findSimilarMerchants, similarityReasons } from '../src/merchants/similarity.policy';
+import { findSimilarMerchants, similarityReasons } from '../src/merchants/similarity';
 
 describe('similarityReasons', () => {
   const base = { companyName: 'Northstar Ltd', contactEmail: 'ops@northstar.example' };
