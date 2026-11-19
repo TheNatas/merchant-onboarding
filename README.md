@@ -1,6 +1,48 @@
 # Merchant Onboarding
 
-Coding exercise: merchant registration backend feature. Install, run and test instructions will be added once the implementation exists.
+Small backend service that registers merchants: it validates and normalizes the input, rejects duplicates and stores the merchant as `PENDING`. Built with TypeScript, Express and Zod. See [docs/decisions.md](docs/decisions.md) for technical decisions, assumptions and the production persistence plan.
+
+## Requirements
+Node.js 20 or newer and npm.
+
+## Install, run, test
+```bash
+npm install
+npm run dev        # development server with reload, http://localhost:3000
+npm run build && npm start   # compiled server (PORT env var, default 3000)
+npm test           # unit and HTTP tests (Jest + supertest)
+npm run typecheck
+```
+
+## API
+`POST /merchants` with a JSON body:
+
+| Field | Rule |
+|---|---|
+| `companyName` | required, at least 2 characters |
+| `contactEmail` | required, valid email |
+| `country` | required, two letters (stored uppercase) |
+| `externalMerchantId` | required, unique (case-insensitive) |
+
+Strings are trimmed. Unknown fields are ignored.
+
+| Status | Meaning |
+|---|---|
+| `201` | Created. Body has `id`, the four fields, `status: "PENDING"`, `createdAt`. |
+| `400` | `VALIDATION_ERROR` (with per-field `details`) or `INVALID_JSON`. |
+| `409` | `DUPLICATE_MERCHANT`. |
+
+```bash
+curl -i -X POST http://localhost:3000/merchants \
+  -H 'Content-Type: application/json' \
+  -d '{"companyName":"Northstar Ltd","contactEmail":"ops@northstar.example","country":"gb","externalMerchantId":"northstar-001"}'
+```
+
+Storage is in memory, so data is lost on restart. `docs/decisions.md` explains how to persist it in production.
+
+---
+
+# Original exercise
 
 ## Purpose
 

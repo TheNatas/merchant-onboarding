@@ -1,0 +1,31 @@
+import express, { ErrorRequestHandler } from 'express';
+import { DuplicateMerchantError } from './errors';
+import { MerchantRepository } from './merchants/merchant.repository';
+import { merchantRoutes } from './merchants/merchant.routes';
+import { Clock, MerchantService } from './merchants/merchant.service';
+
+export interface AppDeps {
+  repository: MerchantRepository;
+  clock?: Clock;
+}
+
+const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+  if (err instanceof DuplicateMerchantError) {
+    res.status(409).json({ error: 'DUPLICATE_MERCHANT', message: err.message });
+    return;
+  }
+  if (err?.type === 'entity.parse.failed') {
+    res.status(400).json({ error: 'INVALID_JSON', message: 'Request body is not valid JSON' });
+    return;
+  }
+  console.error(err);
+  res.status(500).json({ error: 'INTERNAL_ERROR', message: 'Unexpected error' });
+};
+
+export function createApp({ repository, clock }: AppDeps) {
+  const app = express();
+  app.use(express.json());
+  app.use(merchantRoutes(new MerchantService(repository, clock)));
+  app.use(errorHandler);
+  return app;
+}
