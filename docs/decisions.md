@@ -11,6 +11,12 @@
 | E2E | None (no Playwright) | There is no UI. HTTP-level tests cover the API behaviour. |
 | Package manager | npm | Simplest setup for reviewers. |
 
+### Versions
+- **TypeScript 5.9, not 7.x:** the latest release (7.0.2) does not expose the compiler API that `ts-jest` needs, so Jest could not run the tests. Version 5.9 is pinned until `ts-jest` supports 7.
+- **Express 5:** rejected promises from async handlers reach the error middleware without extra wrapper code.
+- **Zod 4:** `z.email()` and the `issues` array are used for validation and error output.
+- **Node.js:** 20 or newer. Development used 22.
+
 ### Alternatives considered
 - **NestJS:** gives structure and DI, but needs roughly twice the files and decorator setup for one endpoint. Worth it for larger apps.
 - **class-validator:** the usual Nest choice. Not needed once Nest is dropped.
