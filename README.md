@@ -2,6 +2,8 @@
 
 Small backend service that registers merchants: it validates and normalizes the input, rejects duplicates and stores the merchant as `PENDING`. Built with TypeScript, Express and Zod. See [docs/decisions.md](docs/decisions.md) for technical decisions, assumptions and the production persistence plan.
 
+This project was built with AI assistance: Kiro CLI with Claude models (selected automatically by Kiro's Auto mode). See [docs/decisions.md](docs/decisions.md) for who decided what.
+
 ## Requirements
 Node.js 20 or newer and npm.
 

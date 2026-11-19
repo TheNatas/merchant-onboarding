@@ -22,6 +22,7 @@ The sections below give the details and the reasons.
 | Package manager | npm | Simplest setup for reviewers. |
 | Build | `tsc` with `tsconfig.build.json` (only `src`, output in `dist/`) | Tests are not compiled into the build. `tsconfig.json` also covers tests, for type checking and Jest. |
 | CI | GitHub Actions: typecheck, test and build on Node 20 and 22 | Matches the `engines` field in `package.json`. |
+| AI assistance | Kiro CLI with Claude models, selected automatically by Kiro's Auto mode | Used for planning, code, tests and documentation. I made the decisions on stack, behaviour and scope, and reviewed the code, tests and docs. |
 | Linter and formatter | none | Decided against for this exercise. The style is kept consistent by hand. |
 
 ### Versions
