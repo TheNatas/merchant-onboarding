@@ -11,6 +11,7 @@ npm install
 npm run dev        # development server with reload, http://localhost:3000
 npm run build && npm start   # compiled server (PORT env var, default 3000)
 npm test           # unit and HTTP tests (Jest + supertest)
+npm run test:coverage
 npm run typecheck
 ```
 
@@ -19,18 +20,19 @@ npm run typecheck
 
 | Field | Rule |
 |---|---|
-| `companyName` | required, at least 2 characters |
+| `companyName` | required, 2 to 200 characters |
 | `contactEmail` | required, valid email |
 | `country` | required, two letters (stored uppercase) |
-| `externalMerchantId` | required, unique (case-insensitive) |
+| `externalMerchantId` | required, 1 to 100 characters, unique (case-insensitive) |
 | `confirmSimilar` | optional boolean. Set to `true` to register a merchant that looks similar to an existing one |
 
-Strings are trimmed. Unknown fields are ignored.
+Strings are trimmed. Unknown fields are ignored. Every error response has the form `{ error, message, details? }`.
 
 | Status | Meaning |
 |---|---|
 | `201` | Created. Body has `id`, the four fields, `status: "PENDING"`, `createdAt`. |
 | `400` | `VALIDATION_ERROR` (with per-field `details`) or `INVALID_JSON`. |
+| `413` | `PAYLOAD_TOO_LARGE` (body over 100 KB). |
 | `409` | `DUPLICATE_MERCHANT`, or `SIMILAR_MERCHANT_FOUND` (same normalized company name or same contact email as an existing merchant; nothing is saved until the request is resent with `confirmSimilar: true`). |
 
 ```bash
