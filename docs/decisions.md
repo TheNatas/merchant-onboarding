@@ -1,5 +1,15 @@
 # Technical decisions and assumptions
 
+## Summary
+- **Stack:** TypeScript, Express 5, Zod 4, Jest and supertest. NestJS and Playwright were considered and rejected as too heavy for one endpoint with no UI.
+- **Behaviour:** inputs are trimmed, `country` is stored uppercase, and a new merchant is saved as `PENDING` with a creation time. Status codes: `201`, `400` (invalid input), `409` (duplicate).
+- **Duplicates:** `externalMerchantId` is unique ignoring letter case, checked atomically in the repository.
+- **Bonus, needs stakeholder approval:** a similarity warning (same normalized company name or same contact email) that the caller can confirm with `confirmSimilar: true`.
+- **Storage:** in memory behind a `MerchantRepository` interface. For production: PostgreSQL with a unique index on `lower(external_merchant_id)`.
+- **Known limits:** concurrent similar registrations can both pass the advisory warning. No authentication or rate limiting, since the exercise is a small feature.
+
+The sections below give the details and the reasons.
+
 ## Stack
 
 | Area | Choice | Why |

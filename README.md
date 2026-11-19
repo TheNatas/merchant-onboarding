@@ -21,7 +21,7 @@ npm run typecheck
 | Field | Rule |
 |---|---|
 | `companyName` | required, 2 to 200 characters |
-| `contactEmail` | required, valid email |
+| `contactEmail` | required, valid email, at most 254 characters |
 | `country` | required, two letters (stored uppercase) |
 | `externalMerchantId` | required, 1 to 100 characters, unique (case-insensitive) |
 | `confirmSimilar` | optional boolean. Set to `true` to register a merchant that looks similar to an existing one |
@@ -33,6 +33,8 @@ Strings are trimmed. Unknown fields are ignored. Every error response has the fo
 | `201` | Created. Body has `id`, the four fields, `status: "PENDING"`, `createdAt`. |
 | `400` | `VALIDATION_ERROR` (with per-field `details`) or `INVALID_JSON`. |
 | `413` | `PAYLOAD_TOO_LARGE` (body over 100 KB). |
+| `415` | `BAD_REQUEST` (for example an unsupported `Content-Encoding`). |
+| `404` | `NOT_FOUND` (only `POST /merchants` exists). |
 | `409` | `DUPLICATE_MERCHANT`, or `SIMILAR_MERCHANT_FOUND` (same normalized company name or same contact email as an existing merchant; nothing is saved until the request is resent with `confirmSimilar: true`). |
 
 ```bash
