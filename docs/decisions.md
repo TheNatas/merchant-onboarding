@@ -41,9 +41,25 @@
 - **Atomicity:** the repository performs the check and the insert as one operation, so concurrent requests cannot both succeed.
 - **Assumption and trade-off:** this assumes the external system does not treat IDs that differ only by case as different merchants. If it does, two real merchants could be rejected as duplicates.
 
-### Possible extension: similarity warning (not planned for the first version)
-- Besides blocking exact (case-insensitive) duplicates, warn when a new registration looks similar to an existing one, for example "this merchant seems similar to X, are you sure it isn't already registered?".
-- Open questions: which similarity rule (ignored punctuation, edit distance, same `contactEmail`, similar `companyName`), and how the client confirms (for example a `confirmSimilar: true` flag, with a distinct response when a warning is returned).
+### Similarity warning (implemented)
+Duplicate handling has two tiers:
+- **Hard block:** same `externalMerchantId` (case-insensitive) returns `409 DUPLICATE_MERCHANT`. The ID is a key other systems use, so two records that differ only by case would make lookups ambiguous.
+- **Soft warning:** a new merchant that looks like an existing one returns `409 SIMILAR_MERCHANT_FOUND` with the similar merchants (`id`, `companyName`, `externalMerchantId`, `reasons`) and saves nothing. The client resends the same request with `"confirmSimilar": true` to register it anyway. The ID check always runs first, so a duplicate ID is never overridden by `confirmSimilar`.
+
+Similarity rules (deliberately conservative):
+- `SAME_COMPANY_NAME`: equal after lowercasing, removing accents and punctuation, collapsing spaces and dropping trailing legal suffixes (`Ltd`, `Limited`, `LLC`, `Inc`, `GmbH` and similar).
+- `SAME_CONTACT_EMAIL`: equal after lowercasing.
+- Fuzzy matching such as edit distance is not used. A one-character difference is often a different merchant (`store-1` and `store-2`).
+
+**This does not make the API stateful.** The server keeps nothing between the two requests. The confirmation is a field in the second request, and the server repeats all checks from scratch. The warning is advisory: another merchant may be added between the two requests, and only the ID uniqueness check is atomic.
+
+**Costs to consider**
+- **Slowness:** similarity needs a search over existing merchants, not a key lookup. The in-memory version scans every merchant. In production this needs an index, for example a stored normalized company name column with an index, or `pg_trgm` if fuzzy matching is added. An unindexed scan on every registration would not scale.
+- **Annoyed users:** every false positive makes a legitimate user stop and confirm. Rules stay strict (equality after normalization, no fuzzy distance), and the response says which rule matched so the user can decide quickly. Shared mailboxes (`info@`, `ops@` of a group of companies) will trigger `SAME_CONTACT_EMAIL` for real distinct merchants. Track how often warnings are overridden, and loosen or drop a rule that is nearly always overridden.
+- **API surface:** one more request field, one more error code and more tests.
+- **Information exposure:** the warning reveals that other merchants exist and their names and IDs. This is acceptable for an internal onboarding tool. If the endpoint were exposed to merchants themselves, the warning should be removed or reduced.
+
+**Not done:** storing a `similarTo` reference on the confirmed merchant for later review, and an `Idempotency-Key` header for safe retries.
 
 ## Storage
 - The first version uses an in-memory repository behind the `MerchantRepository` interface. Data is lost on restart and is per process.

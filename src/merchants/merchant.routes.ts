@@ -11,7 +11,8 @@ export function merchantRoutes(service: MerchantService): Router {
       res.status(400).json({ error: 'VALIDATION_ERROR', details: parsed.errors });
       return;
     }
-    const merchant = await service.register(parsed.data);
+    const { confirmSimilar, ...input } = parsed.data;
+    const merchant = await service.register(input, { confirmSimilar });
     res.status(201).json(merchant);
   });
 

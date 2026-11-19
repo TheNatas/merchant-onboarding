@@ -1,5 +1,5 @@
 import express, { ErrorRequestHandler } from 'express';
-import { DuplicateMerchantError } from './errors';
+import { DuplicateMerchantError, SimilarMerchantError } from './errors';
 import { MerchantRepository } from './merchants/merchant.repository';
 import { merchantRoutes } from './merchants/merchant.routes';
 import { Clock, MerchantService } from './merchants/merchant.service';
@@ -12,6 +12,19 @@ export interface AppDeps {
 const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   if (err instanceof DuplicateMerchantError) {
     res.status(409).json({ error: 'DUPLICATE_MERCHANT', message: err.message });
+    return;
+  }
+  if (err instanceof SimilarMerchantError) {
+    res.status(409).json({
+      error: 'SIMILAR_MERCHANT_FOUND',
+      message: err.message,
+      similarMerchants: err.similar.map(({ merchant, reasons }) => ({
+        id: merchant.id,
+        companyName: merchant.companyName,
+        externalMerchantId: merchant.externalMerchantId,
+        reasons,
+      })),
+    });
     return;
   }
   if (err?.type === 'entity.parse.failed') {

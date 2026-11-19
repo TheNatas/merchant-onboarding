@@ -85,3 +85,57 @@ describe('POST /merchants', () => {
     expect(results.filter((r) => r.status === 409)).toHaveLength(4);
   });
 });
+
+describe('POST /merchants similarity warning', () => {
+  const other = { ...valid, externalMerchantId: 'northstar-002' };
+
+  it('returns 409 SIMILAR_MERCHANT_FOUND and saves nothing', async () => {
+    const app = newApp();
+    const first = await request(app).post('/merchants').send(valid).expect(201);
+    const res = await request(app).post('/merchants').send({ ...other, companyName: 'NORTHSTAR limited' });
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('SIMILAR_MERCHANT_FOUND');
+    expect(res.body.similarMerchants).toEqual([
+      {
+        id: first.body.id,
+        companyName: 'Northstar Ltd',
+        externalMerchantId: 'northstar-001',
+        reasons: ['SAME_COMPANY_NAME', 'SAME_CONTACT_EMAIL'],
+      },
+    ]);
+    // nothing was saved, so the same ID is still free
+    await request(app).post('/merchants').send({ ...other, confirmSimilar: true }).expect(201);
+  });
+
+  it('warns on same contact email alone', async () => {
+    const app = newApp();
+    await request(app).post('/merchants').send(valid).expect(201);
+    const res = await request(app).post('/merchants').send({ ...other, companyName: 'Completely Different' });
+    expect(res.status).toBe(409);
+    expect(res.body.similarMerchants[0].reasons).toEqual(['SAME_CONTACT_EMAIL']);
+  });
+
+  it('creates the merchant when confirmSimilar is true', async () => {
+    const app = newApp();
+    await request(app).post('/merchants').send(valid).expect(201);
+    const res = await request(app).post('/merchants').send({ ...other, confirmSimilar: true });
+    expect(res.status).toBe(201);
+    expect(res.body).not.toHaveProperty('confirmSimilar');
+  });
+
+  it('a duplicate ID is still 409 DUPLICATE_MERCHANT, even when confirmed', async () => {
+    const app = newApp();
+    await request(app).post('/merchants').send(valid).expect(201);
+    const plain = await request(app).post('/merchants').send(valid);
+    expect(plain.body.error).toBe('DUPLICATE_MERCHANT');
+    const confirmed = await request(app).post('/merchants').send({ ...valid, confirmSimilar: true });
+    expect(confirmed.status).toBe(409);
+    expect(confirmed.body.error).toBe('DUPLICATE_MERCHANT');
+  });
+
+  it('returns 400 when confirmSimilar is not a boolean', async () => {
+    const res = await request(newApp()).post('/merchants').send({ ...valid, confirmSimilar: 'yes' });
+    expect(res.status).toBe(400);
+    expect(res.body.details).toEqual([{ field: 'confirmSimilar', message: 'must be of type boolean' }]);
+  });
+});

@@ -23,6 +23,7 @@ npm run typecheck
 | `contactEmail` | required, valid email |
 | `country` | required, two letters (stored uppercase) |
 | `externalMerchantId` | required, unique (case-insensitive) |
+| `confirmSimilar` | optional boolean. Set to `true` to register a merchant that looks similar to an existing one |
 
 Strings are trimmed. Unknown fields are ignored.
 
@@ -30,7 +31,7 @@ Strings are trimmed. Unknown fields are ignored.
 |---|---|
 | `201` | Created. Body has `id`, the four fields, `status: "PENDING"`, `createdAt`. |
 | `400` | `VALIDATION_ERROR` (with per-field `details`) or `INVALID_JSON`. |
-| `409` | `DUPLICATE_MERCHANT`. |
+| `409` | `DUPLICATE_MERCHANT`, or `SIMILAR_MERCHANT_FOUND` (same normalized company name or same contact email as an existing merchant; nothing is saved until the request is resent with `confirmSimilar: true`). |
 
 ```bash
 curl -i -X POST http://localhost:3000/merchants \
