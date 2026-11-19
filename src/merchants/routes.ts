@@ -2,13 +2,18 @@ import { Router } from 'express';
 import { parseRegisterMerchant } from './schema';
 import { MerchantService } from './service';
 
+/** Mounted at /merchants by the app. */
 export function merchantRoutes(service: MerchantService): Router {
   const router = Router();
 
-  router.post('/merchants', async (req, res) => {
+  router.post('/', async (req, res) => {
     const parsed = parseRegisterMerchant(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'VALIDATION_ERROR', details: parsed.errors });
+      res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'The request body is invalid. See details for each field',
+        details: parsed.errors,
+      });
       return;
     }
     const { confirmSimilar, ...input } = parsed.data;

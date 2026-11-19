@@ -10,15 +10,17 @@ How to use the merchant onboarding service. The service has one endpoint, `POST 
 
 | Field | Type | Required | Rules |
 |---|---|---|---|
-| `companyName` | string | yes | Trimmed. At least 2 characters. |
-| `contactEmail` | string | yes | Trimmed. Must be a valid email address. |
+| `companyName` | string | yes | Trimmed. 2 to 200 characters. |
+| `contactEmail` | string | yes | Trimmed. Must be a valid email address, at most 254 characters. |
 | `country` | string | yes | Trimmed. Exactly two letters. Stored in uppercase (`gb` becomes `GB`). Not checked against the list of real ISO country codes. |
-| `externalMerchantId` | string | yes | Trimmed. Not empty. Must be unique, ignoring letter case. |
+| `externalMerchantId` | string | yes | Trimmed. 1 to 100 characters. Must be unique, ignoring letter case. |
 | `confirmSimilar` | boolean | no | Set to `true` to register a merchant even though it looks similar to an existing one. Not saved and not returned. |
 
-Other fields are ignored. For example, a `status` sent by the client is dropped.
+Other fields are ignored. For example, a `status` sent by the client is dropped. The whole request body can be at most 100 KB.
 
 ### Responses at a glance
+
+Every error response has the same shape: `error` is a stable code for programs, `message` is text for people, and some errors add more fields (`details`, `similarMerchants`).
 
 | Status | `error` | Meaning | What to do |
 |---|---|---|---|
@@ -27,6 +29,9 @@ Other fields are ignored. For example, a `status` sent by the client is dropped.
 | `400` | `INVALID_JSON` | The body is not valid JSON. | Fix the JSON. |
 | `409` | `DUPLICATE_MERCHANT` | `externalMerchantId` is already registered. | Use a different ID. `confirmSimilar` cannot override this. |
 | `409` | `SIMILAR_MERCHANT_FOUND` | Looks like an existing merchant. Nothing was saved. | Check the listed merchants. If it is a different merchant, resend with `confirmSimilar: true`. |
+| `400`, `415` | `BAD_REQUEST` | Another problem with the request itself, such as an unsupported `Content-Encoding`. | Fix the request. |
+| `413` | `PAYLOAD_TOO_LARGE` | The body is larger than 100 KB. | Send a smaller body. |
+| `404` | `NOT_FOUND` | The path or method does not exist. Only `POST /merchants` is available. | Check the URL and method. |
 | `500` | `INTERNAL_ERROR` | Unexpected server error. | Retry later or check the server log. |
 
 ## Success: 201 Created
@@ -68,6 +73,7 @@ curl -i -X POST http://localhost:3000/merchants \
 ```json
 {
   "error": "VALIDATION_ERROR",
+  "message": "The request body is invalid. See details for each field",
   "details": [
     { "field": "companyName", "message": "must be at least 2 characters" },
     { "field": "contactEmail", "message": "must be a valid email address" },
@@ -77,7 +83,7 @@ curl -i -X POST http://localhost:3000/merchants \
 }
 ```
 
-`details` lists every invalid field in one response, so you can fix them all at once. Each entry has the `field` name and a `message`. A body that is not a JSON object (for example an empty body) gives `field: "(body)"` and the message `must be a JSON object`.
+`details` lists every invalid field in one response, so you can fix them all at once. Each entry has the `field` name and a `message`. Messages are `is required` (missing), `must be a string` or `must be a boolean` (wrong type), or a rule such as `must be at most 200 characters`. A body that is not a JSON object (for example an empty body) gives `field: "(body)"` and the message `must be a JSON object`.
 
 A body that is not valid JSON returns `{ "error": "INVALID_JSON", "message": "Request body is not valid JSON" }`.
 

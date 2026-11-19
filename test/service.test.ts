@@ -1,13 +1,9 @@
-import { DuplicateMerchantError, SimilarMerchantError } from '../src/errors';
+import { DuplicateMerchantError, SimilarMerchantError } from '../src/merchants/errors';
 import { InMemoryMerchantRepository } from '../src/merchants/repository';
 import { MerchantService } from '../src/merchants/service';
+import { validInput } from './fixtures';
 
-const input = {
-  companyName: 'Northstar Ltd',
-  contactEmail: 'ops@northstar.example',
-  country: 'GB',
-  externalMerchantId: 'northstar-001',
-};
+const input = validInput;
 
 describe('MerchantService', () => {
   const clock = () => new Date('2026-11-19T12:00:00.000Z');

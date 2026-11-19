@@ -1,15 +1,9 @@
-import { DuplicateMerchantError } from '../src/errors';
-import { InMemoryMerchantRepository, Merchant } from '../src/merchants/repository';
+import { DuplicateMerchantError } from '../src/merchants/errors';
+import { Merchant } from '../src/merchants/merchant';
+import { InMemoryMerchantRepository } from '../src/merchants/repository';
+import { makeMerchant } from './fixtures';
 
-const make = (externalMerchantId: string): Merchant => ({
-  id: externalMerchantId,
-  companyName: 'Northstar Ltd',
-  contactEmail: 'ops@northstar.example',
-  country: 'GB',
-  externalMerchantId,
-  status: 'PENDING',
-  createdAt: '2026-01-01T00:00:00.000Z',
-});
+const make = (externalMerchantId: string): Merchant => makeMerchant({ externalMerchantId, id: externalMerchantId });
 
 describe('InMemoryMerchantRepository', () => {
   it('stores a merchant', async () => {

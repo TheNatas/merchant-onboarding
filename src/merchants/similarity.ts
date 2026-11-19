@@ -1,5 +1,6 @@
-import { Merchant, MerchantRepository } from './repository';
+import { Merchant } from './merchant';
 import { normalizeCompanyName, normalizeEmail } from './normalize';
+import { MerchantRepository } from './repository';
 
 /**
  * Business rule: when does a new merchant look like one that is already registered?
@@ -21,7 +22,9 @@ interface Comparable {
 
 export function similarityReasons(a: Comparable, b: Comparable): SimilarityReason[] {
   const reasons: SimilarityReason[] = [];
-  if (normalizeCompanyName(a.companyName) === normalizeCompanyName(b.companyName)) {
+  const nameA = normalizeCompanyName(a.companyName);
+  // A name made only of punctuation normalizes to '' and says nothing about identity.
+  if (nameA !== '' && nameA === normalizeCompanyName(b.companyName)) {
     reasons.push('SAME_COMPANY_NAME');
   }
   if (normalizeEmail(a.contactEmail) === normalizeEmail(b.contactEmail)) {
@@ -34,8 +37,9 @@ export async function findSimilarMerchants(
   repository: MerchantRepository,
   candidate: Comparable,
 ): Promise<SimilarMerchant[]> {
+  const normalizedName = normalizeCompanyName(candidate.companyName);
   const [byName, byEmail] = await Promise.all([
-    repository.findByNormalizedCompanyName(normalizeCompanyName(candidate.companyName)),
+    normalizedName === '' ? [] : repository.findByNormalizedCompanyName(normalizedName),
     repository.findByContactEmail(normalizeEmail(candidate.contactEmail)),
   ]);
   const unique = new Map<string, Merchant>();

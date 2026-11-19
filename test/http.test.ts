@@ -1,13 +1,9 @@
 import request from 'supertest';
 import { createApp } from '../src/app';
 import { InMemoryMerchantRepository } from '../src/merchants/repository';
+import { validInput } from './fixtures';
 
-const valid = {
-  companyName: 'Northstar Ltd',
-  contactEmail: 'ops@northstar.example',
-  country: 'GB',
-  externalMerchantId: 'northstar-001',
-};
+const valid = validInput;
 
 const newApp = () =>
   createApp({
@@ -33,6 +29,7 @@ describe('POST /merchants', () => {
     const res = await request(newApp()).post('/merchants').send({ companyName: 'A', country: 'GBR' });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('VALIDATION_ERROR');
+    expect(res.body.message).toEqual(expect.any(String));
     expect(res.body.details.map((d: { field: string }) => d.field).sort()).toEqual([
       'companyName',
       'contactEmail',
@@ -136,7 +133,7 @@ describe('POST /merchants similarity warning', () => {
   it('returns 400 when confirmSimilar is not a boolean', async () => {
     const res = await request(newApp()).post('/merchants').send({ ...valid, confirmSimilar: 'yes' });
     expect(res.status).toBe(400);
-    expect(res.body.details).toEqual([{ field: 'confirmSimilar', message: 'must be of type boolean' }]);
+    expect(res.body.details).toEqual([{ field: 'confirmSimilar', message: 'must be a boolean' }]);
   });
 });
 
@@ -159,12 +156,84 @@ describe('POST /merchants robustness', () => {
     expect(res.body).toEqual({ error: 'INTERNAL_ERROR', message: 'Unexpected error' });
   });
 
-  it('does not match merchants that only share part of a name', async () => {
+  it('does not report merchants that only share part of a name as similar', async () => {
     const app = newApp();
     await request(app).post('/merchants').send(valid).expect(201);
     await request(app)
       .post('/merchants')
       .send({ ...valid, companyName: 'Northstar Logistics', contactEmail: 'a@b.example', externalMerchantId: 'x-1' })
+      .expect(201);
+  });
+});
+
+describe('error responses', () => {
+  const expectEnvelope = (body: Record<string, unknown>, code: string) => {
+    expect(body.error).toBe(code);
+    expect(body.message).toEqual(expect.any(String));
+  };
+
+  it('returns 413 for a body over the size limit', async () => {
+    const res = await request(newApp())
+      .post('/merchants')
+      .send({ ...valid, companyName: 'x'.repeat(200_000) });
+    expect(res.status).toBe(413);
+    expectEnvelope(res.body, 'PAYLOAD_TOO_LARGE');
+  });
+
+  it('returns 400 for an overlong field that fits in the body', async () => {
+    const res = await request(newApp())
+      .post('/merchants')
+      .send({ ...valid, companyName: 'x'.repeat(201) });
+    expect(res.status).toBe(400);
+    expect(res.body.details).toEqual([{ field: 'companyName', message: 'must be at most 200 characters' }]);
+  });
+
+  it('passes through other client errors from the body parser as 4xx', async () => {
+    const res = await request(newApp())
+      .post('/merchants')
+      .set('Content-Type', 'application/json')
+      .set('Content-Encoding', 'x-bogus')
+      .send('{}');
+    expect(res.status).toBe(415);
+    expectEnvelope(res.body, 'BAD_REQUEST');
+  });
+
+  it.each([
+    ['GET', '/merchants'],
+    ['POST', '/nope'],
+    ['GET', '/'],
+  ])('returns a JSON 404 for %s %s', async (method, path) => {
+    const res = await request(newApp())[method.toLowerCase() as 'get' | 'post'](path);
+    expect(res.status).toBe(404);
+    expect(res.type).toBe('application/json');
+    expectEnvelope(res.body, 'NOT_FOUND');
+  });
+
+  it('uses the same envelope for every error code', async () => {
+    const app = newApp();
+    await request(app).post('/merchants').send(valid).expect(201);
+    expectEnvelope((await request(app).post('/merchants').send(valid)).body, 'DUPLICATE_MERCHANT');
+    expectEnvelope(
+      (await request(app).post('/merchants').send({ ...valid, externalMerchantId: 'other' })).body,
+      'SIMILAR_MERCHANT_FOUND',
+    );
+    expectEnvelope(
+      (await request(app).post('/merchants').set('Content-Type', 'application/json').send('{')).body,
+      'INVALID_JSON',
+    );
+  });
+
+  it('does not advertise the framework', async () => {
+    const res = await request(newApp()).post('/merchants').send(valid);
+    expect(res.headers['x-powered-by']).toBeUndefined();
+  });
+
+  it('keeps junk company names from triggering a similarity warning', async () => {
+    const app = newApp();
+    await request(app).post('/merchants').send({ ...valid, companyName: '!!' }).expect(201);
+    await request(app)
+      .post('/merchants')
+      .send({ ...valid, companyName: '??', contactEmail: 'b@b.example', externalMerchantId: 'j-2' })
       .expect(201);
   });
 });

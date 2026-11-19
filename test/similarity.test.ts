@@ -1,4 +1,6 @@
-import { InMemoryMerchantRepository, Merchant } from '../src/merchants/repository';
+import { Merchant } from '../src/merchants/merchant';
+import { InMemoryMerchantRepository } from '../src/merchants/repository';
+import { makeMerchant } from './fixtures';
 import { findSimilarMerchants, similarityReasons } from '../src/merchants/similarity';
 
 describe('similarityReasons', () => {
@@ -26,15 +28,8 @@ describe('similarityReasons', () => {
 });
 
 describe('findSimilarMerchants', () => {
-  const make = (externalMerchantId: string, companyName: string, contactEmail: string): Merchant => ({
-    id: externalMerchantId,
-    companyName,
-    contactEmail,
-    country: 'GB',
-    externalMerchantId,
-    status: 'PENDING',
-    createdAt: '2026-01-01T00:00:00.000Z',
-  });
+  const make = (externalMerchantId: string, companyName: string, contactEmail: string): Merchant =>
+    makeMerchant({ id: externalMerchantId, externalMerchantId, companyName, contactEmail });
   const candidate = { companyName: 'Acme Inc', contactEmail: 'hello@acme.example' };
 
   it('returns nothing when the repository is empty or nothing matches', async () => {
@@ -55,5 +50,12 @@ describe('findSimilarMerchants', () => {
       { merchant: both, reasons: ['SAME_COMPANY_NAME', 'SAME_CONTACT_EMAIL'] },
       { merchant: byEmail, reasons: ['SAME_CONTACT_EMAIL'] },
     ]);
+  });
+
+  it('never treats names made only of punctuation as similar', async () => {
+    const repo = new InMemoryMerchantRepository();
+    await repo.create(make('j-1', '!!', 'one@x.example'));
+    await expect(findSimilarMerchants(repo, { companyName: '??', contactEmail: 'two@x.example' })).resolves.toEqual([]);
+    expect(similarityReasons({ companyName: '!!', contactEmail: 'a@x.example' }, { companyName: '??', contactEmail: 'b@x.example' })).toEqual([]);
   });
 });

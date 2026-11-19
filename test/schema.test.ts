@@ -1,11 +1,7 @@
-import { parseRegisterMerchant } from '../src/merchants/schema';
+import { MAX_LENGTHS, parseRegisterMerchant } from '../src/merchants/schema';
+import { validInput } from './fixtures';
 
-const valid = {
-  companyName: 'Northstar Ltd',
-  contactEmail: 'ops@northstar.example',
-  country: 'GB',
-  externalMerchantId: 'northstar-001',
-};
+const valid = validInput;
 
 const fieldsOf = (body: unknown) => {
   const r = parseRegisterMerchant(body);
@@ -71,5 +67,22 @@ describe('parseRegisterMerchant', () => {
 
   it('rejects an array body', () => {
     expect(fieldsOf([valid])).toEqual(['(body)']);
+  });
+
+  it('uses clear messages for missing, wrongly typed and non-object input', () => {
+    const messages = (body: unknown) => {
+      const r = parseRegisterMerchant(body);
+      return r.success ? [] : r.errors.map((e) => `${e.field}: ${e.message}`);
+    };
+    expect(messages({ ...valid, companyName: undefined })).toEqual(['companyName: is required']);
+    expect(messages({ ...valid, companyName: 5 })).toEqual(['companyName: must be a string']);
+    expect(messages({ ...valid, confirmSimilar: 'yes' })).toEqual(['confirmSimilar: must be a boolean']);
+    expect(messages(null)).toEqual(['(body): must be a JSON object']);
+  });
+
+  it.each(Object.entries(MAX_LENGTHS))('accepts %s at its maximum length and rejects one more', (field, max) => {
+    const value = field === 'contactEmail' ? `${'a'.repeat(max - 'x@b.example'.length)}x@b.example` : 'a'.repeat(max);
+    expect(fieldsOf({ ...valid, [field]: value })).toEqual([]);
+    expect(fieldsOf({ ...valid, [field]: `${value}a` })).toEqual([field]);
   });
 });

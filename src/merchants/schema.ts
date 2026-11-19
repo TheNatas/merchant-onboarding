@@ -1,16 +1,38 @@
 import { z } from 'zod';
 
-export const registerMerchantSchema = z.object({
-  companyName: z.string().trim().min(2, 'must be at least 2 characters'),
-  contactEmail: z.string().trim().pipe(z.email('must be a valid email address')),
-  country: z
-    .string()
-    .trim()
-    .regex(/^[A-Za-z]{2}$/, 'must be a two-letter country code')
-    .transform((c) => c.toUpperCase()),
-  externalMerchantId: z.string().trim().min(1, 'must not be empty'),
-  confirmSimilar: z.boolean().optional(),
+export const MAX_LENGTHS = { companyName: 200, contactEmail: 254, externalMerchantId: 100 } as const;
+
+/** Error message for a wrong type: "is required" when the field is absent, otherwise the expected type. */
+const typeError = (expected: string) => ({
+  error: (issue: { input?: unknown }) => (issue.input === undefined ? 'is required' : `must be ${expected}`),
 });
+
+export const registerMerchantSchema = z.object(
+  {
+    companyName: z
+      .string(typeError('a string'))
+      .trim()
+      .min(2, 'must be at least 2 characters')
+      .max(MAX_LENGTHS.companyName, `must be at most ${MAX_LENGTHS.companyName} characters`),
+    contactEmail: z
+      .string(typeError('a string'))
+      .trim()
+      .max(MAX_LENGTHS.contactEmail, `must be at most ${MAX_LENGTHS.contactEmail} characters`)
+      .pipe(z.email('must be a valid email address')),
+    country: z
+      .string(typeError('a string'))
+      .trim()
+      .regex(/^[A-Za-z]{2}$/, 'must be a two-letter country code')
+      .transform((c) => c.toUpperCase()),
+    externalMerchantId: z
+      .string(typeError('a string'))
+      .trim()
+      .min(1, 'must not be empty')
+      .max(MAX_LENGTHS.externalMerchantId, `must be at most ${MAX_LENGTHS.externalMerchantId} characters`),
+    confirmSimilar: z.boolean(typeError('a boolean')).optional(),
+  },
+  { error: () => 'must be a JSON object' },
+);
 
 export type RegisterMerchantRequest = z.infer<typeof registerMerchantSchema>;
 /** The merchant data itself, without request flags. */
@@ -32,13 +54,7 @@ export function parseRegisterMerchant(body: unknown): ParseResult {
     success: false,
     errors: result.error.issues.map((issue) => ({
       field: issue.path.join('.') || '(body)',
-      message: describeIssue(issue),
+      message: issue.message,
     })),
   };
-}
-
-function describeIssue(issue: z.core.$ZodIssue): string {
-  if (issue.code !== 'invalid_type') return issue.message;
-  if (issue.path.length === 0) return 'must be a JSON object';
-  return issue.message.includes('received undefined') ? 'is required' : `must be of type ${issue.expected}`;
 }

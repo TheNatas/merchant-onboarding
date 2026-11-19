@@ -1,17 +1,6 @@
-import { DuplicateMerchantError } from '../errors';
+import { DuplicateMerchantError } from './errors';
+import { Merchant } from './merchant';
 import { normalizeCompanyName, normalizeEmail, normalizeExternalId } from './normalize';
-
-export type MerchantStatus = 'PENDING';
-
-export interface Merchant {
-  id: string;
-  companyName: string;
-  contactEmail: string;
-  country: string;
-  externalMerchantId: string;
-  status: MerchantStatus;
-  createdAt: string;
-}
 
 export interface MerchantRepository {
   exists(externalMerchantId: string): Promise<boolean>;

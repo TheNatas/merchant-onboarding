@@ -10,6 +10,9 @@
 | Unit and HTTP tests | Jest + supertest | Tests call the app through `createApp(deps)` without opening a port. |
 | E2E | None (no Playwright) | There is no UI. HTTP-level tests cover the API behaviour. |
 | Package manager | npm | Simplest setup for reviewers. |
+| Build | `tsc` with `tsconfig.build.json` (only `src`, output in `dist/`) | Tests are not compiled into the build. `tsconfig.json` also covers tests, for type checking and Jest. |
+| CI | GitHub Actions: typecheck, test and build on Node 20 and 22 | Matches the `engines` field in `package.json`. |
+| Linter and formatter | none | Decided against for this exercise. The style is kept consistent by hand. |
 
 ### Versions
 - **TypeScript 5.9, not 7.x:** the latest release (7.0.2) does not expose the compiler API that `ts-jest` needs, so Jest could not run the tests. Version 5.9 is pinned until `ts-jest` supports 7.
@@ -26,6 +29,7 @@
 - `createApp(repository)` builds the Express app with injected dependencies, so tests use an in-memory repository.
 - Layers: route/handler -> Zod schema (validation) -> service -> `MerchantRepository` interface.
 - The similarity rule lives in `similarity.ts`, a domain policy made of pure functions. The repository only provides plain lookups (`findByNormalizedCompanyName`, `findByContactEmail`). A future database repository therefore cannot define "similar" differently from the in-memory one.
+- The `Merchant` type is in `merchant.ts` and the domain errors in `merchants/errors.ts`. Mapping errors to HTTP responses is in `error-handling.ts`, outside the domain folder, so the domain does not know about HTTP.
 - Text normalization (company name, email, external ID) is in `normalize.ts`. It is shared by the policy and the repository.
 - Errors: a `DuplicateMerchantError` is mapped to HTTP 409 by an error-handling middleware. Validation failures return 400 with per-field messages.
 
@@ -58,6 +62,8 @@ Either option avoids repeating the same information twice, so a `register/` fold
 - **Normalization:** all string inputs are trimmed. `country` is stored uppercase.
 - **Country:** two ASCII letters (`^[A-Za-z]{2}$`). Not checked against the ISO 3166 list.
 - **Unknown fields:** stripped, not rejected.
+- **Length limits:** `companyName` 200, `contactEmail` 254 (the usual email maximum), `externalMerchantId` 100 characters, and 100 KB for the whole body. Without limits, one request could carry very long strings, which cost memory and make the similarity scan slower. The numbers are assumptions and would be agreed with the real data owners.
+- **Error format:** every error uses `{ error, message, details? }`. `error` is a stable code, `message` is text for people. Errors raised by Express before our code runs (malformed JSON, body too large, unsupported encoding) are mapped to the same format with a 4xx status, so a client error is never reported as a 500. Unknown routes return a JSON 404.
 - **Created merchant:** `id` (UUID), the four input fields, `status: "PENDING"`, `createdAt` (ISO 8601, UTC).
 - **Status codes:** `201` created, `400` invalid input, `409` duplicate.
 
@@ -76,6 +82,7 @@ Duplicate handling has two tiers:
 Similarity rules (deliberately conservative):
 - `SAME_COMPANY_NAME`: equal after lowercasing, removing accents and punctuation, collapsing spaces and dropping trailing legal suffixes (`Ltd`, `Limited`, `LLC`, `Inc`, `GmbH` and similar).
 - `SAME_CONTACT_EMAIL`: equal after lowercasing.
+- A company name made only of punctuation (`!!`) normalizes to an empty string and is never treated as a match, otherwise unrelated junk names would match each other.
 - Fuzzy matching such as edit distance is not used. A one-character difference is often a different merchant (`store-1` and `store-2`).
 
 **This does not make the API stateful.** The server keeps nothing between the two requests. The confirmation is a field in the second request, and the server repeats all checks from scratch. The warning is advisory: another merchant may be added between the two requests, and only the ID uniqueness check is atomic.

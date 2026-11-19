@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { SimilarMerchantError } from '../errors';
-import { findSimilarMerchants } from './similarity';
-import { Merchant, MerchantRepository } from './repository';
+import { SimilarMerchantError } from './errors';
+import { Merchant } from './merchant';
+import { MerchantRepository } from './repository';
 import { RegisterMerchantInput } from './schema';
+import { findSimilarMerchants } from './similarity';
 
 export type Clock = () => Date;
 
