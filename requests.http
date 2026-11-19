@@ -5,10 +5,23 @@
 # Merchants are kept in memory, so results depend on what was sent before.
 # Run the requests from top to bottom on a freshly started server, or change the IDs.
 # Restarting the server clears all merchants.
+#
+# Each request also has an equivalent curl command in the comments above it. To use it, copy the
+# lines and remove the leading "# ". To use another address in the terminal, set
+# BASE_URL=http://localhost:4000 (default http://localhost:3000).
 
 @baseUrl = http://localhost:3000
 
 ### 1. Register a merchant (expect 201). Input is trimmed and the country is uppercased.
+# curl:
+# curl -i -X POST "${BASE_URL:-http://localhost:3000}/merchants" \
+#   -H 'Content-Type: application/json' \
+#   -d '{
+#   "companyName": "  Northstar Ltd ",
+#   "contactEmail": "ops@northstar.example",
+#   "country": "gb",
+#   "externalMerchantId": "northstar-001"
+# }'
 POST {{baseUrl}}/merchants
 Content-Type: application/json
 
@@ -20,6 +33,15 @@ Content-Type: application/json
 }
 
 ### 2. Same externalMerchantId again (expect 409 DUPLICATE_MERCHANT)
+# curl:
+# curl -i -X POST "${BASE_URL:-http://localhost:3000}/merchants" \
+#   -H 'Content-Type: application/json' \
+#   -d '{
+#   "companyName": "Northstar Ltd",
+#   "contactEmail": "ops@northstar.example",
+#   "country": "GB",
+#   "externalMerchantId": "northstar-001"
+# }'
 POST {{baseUrl}}/merchants
 Content-Type: application/json
 
@@ -31,6 +53,15 @@ Content-Type: application/json
 }
 
 ### 3. Same ID in a different case (expect 409 DUPLICATE_MERCHANT)
+# curl:
+# curl -i -X POST "${BASE_URL:-http://localhost:3000}/merchants" \
+#   -H 'Content-Type: application/json' \
+#   -d '{
+#   "companyName": "Another Company",
+#   "contactEmail": "other@example.com",
+#   "country": "US",
+#   "externalMerchantId": "NORTHSTAR-001"
+# }'
 POST {{baseUrl}}/merchants
 Content-Type: application/json
 
@@ -42,6 +73,15 @@ Content-Type: application/json
 }
 
 ### 4. New ID, but the company name looks like request 1 (expect 409 SIMILAR_MERCHANT_FOUND, nothing saved)
+# curl:
+# curl -i -X POST "${BASE_URL:-http://localhost:3000}/merchants" \
+#   -H 'Content-Type: application/json' \
+#   -d '{
+#   "companyName": "NORTHSTAR, Limited",
+#   "contactEmail": "sales@northstar.example",
+#   "country": "GB",
+#   "externalMerchantId": "northstar-002"
+# }'
 POST {{baseUrl}}/merchants
 Content-Type: application/json
 
@@ -53,6 +93,16 @@ Content-Type: application/json
 }
 
 ### 5. Same request as 4, confirming it is a different merchant (expect 201)
+# curl:
+# curl -i -X POST "${BASE_URL:-http://localhost:3000}/merchants" \
+#   -H 'Content-Type: application/json' \
+#   -d '{
+#   "companyName": "NORTHSTAR, Limited",
+#   "contactEmail": "sales@northstar.example",
+#   "country": "GB",
+#   "externalMerchantId": "northstar-002",
+#   "confirmSimilar": true
+# }'
 POST {{baseUrl}}/merchants
 Content-Type: application/json
 
@@ -65,6 +115,14 @@ Content-Type: application/json
 }
 
 ### 6. Several invalid fields at once (expect 400 VALIDATION_ERROR with a detail per field)
+# curl:
+# curl -i -X POST "${BASE_URL:-http://localhost:3000}/merchants" \
+#   -H 'Content-Type: application/json' \
+#   -d '{
+#   "companyName": "A",
+#   "contactEmail": "not-an-email",
+#   "country": "GBR"
+# }'
 POST {{baseUrl}}/merchants
 Content-Type: application/json
 
@@ -75,6 +133,15 @@ Content-Type: application/json
 }
 
 ### 7. Missing and wrongly typed fields (expect 400 VALIDATION_ERROR)
+# curl:
+# curl -i -X POST "${BASE_URL:-http://localhost:3000}/merchants" \
+#   -H 'Content-Type: application/json' \
+#   -d '{
+#   "companyName": 42,
+#   "contactEmail": "ops@example.com",
+#   "country": "DE",
+#   "confirmSimilar": "yes"
+# }'
 POST {{baseUrl}}/merchants
 Content-Type: application/json
 
@@ -86,12 +153,25 @@ Content-Type: application/json
 }
 
 ### 8. Malformed JSON (expect 400 INVALID_JSON)
+# curl:
+# curl -i -X POST "${BASE_URL:-http://localhost:3000}/merchants" \
+#   -H 'Content-Type: application/json' \
+#   -d '{ "companyName":'
 POST {{baseUrl}}/merchants
 Content-Type: application/json
 
 { "companyName":
 
 ### 9. Unrelated merchant (expect 201)
+# curl:
+# curl -i -X POST "${BASE_URL:-http://localhost:3000}/merchants" \
+#   -H 'Content-Type: application/json' \
+#   -d '{
+#   "companyName": "Blue River GmbH",
+#   "contactEmail": "info@blueriver.example",
+#   "country": "de",
+#   "externalMerchantId": "blue-river-1"
+# }'
 POST {{baseUrl}}/merchants
 Content-Type: application/json
 
@@ -103,4 +183,7 @@ Content-Type: application/json
 }
 
 ### 10. Unknown route (expect 404 NOT_FOUND)
+# curl:
+# curl -i "${BASE_URL:-http://localhost:3000}/merchants"
 GET {{baseUrl}}/merchants
+
