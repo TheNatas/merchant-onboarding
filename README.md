@@ -39,6 +39,8 @@ curl -i -X POST http://localhost:3000/merchants \
   -d '{"companyName":"Northstar Ltd","contactEmail":"ops@northstar.example","country":"gb","externalMerchantId":"northstar-001"}'
 ```
 
+See [docs/api-guide.md](docs/api-guide.md) for request and response examples and an explanation of every response field.
+
 Storage is in memory, so data is lost on restart. `docs/decisions.md` explains how to persist it in production.
 
 ---
