@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { SimilarMerchantError } from '../errors';
+import { findSimilarMerchants } from './merchant-similarity.policy';
 import { Merchant, MerchantRepository } from './merchant.repository';
 import { RegisterMerchantInput } from './merchant.schema';
 
@@ -15,7 +16,7 @@ export class MerchantService {
     // An exact (case-insensitive) ID duplicate always wins over the advisory similarity warning.
     // create() below still enforces uniqueness atomically.
     if (!options.confirmSimilar && !(await this.repository.exists(input.externalMerchantId))) {
-      const similar = await this.repository.findSimilar(input);
+      const similar = await findSimilarMerchants(this.repository, input);
       if (similar.length > 0) throw new SimilarMerchantError(similar);
     }
     return this.repository.create({

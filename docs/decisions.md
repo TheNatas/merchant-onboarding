@@ -24,7 +24,9 @@
 
 ## Architecture
 - `createApp(repository)` builds the Express app with injected dependencies, so tests use an in-memory repository.
-- Layers: route/handler -> Zod schema (validation) -> service (business rules) -> `MerchantRepository` interface.
+- Layers: route/handler -> Zod schema (validation) -> service -> `MerchantRepository` interface.
+- The similarity rule lives in `merchant-similarity.policy.ts`, a domain policy made of pure functions. The repository only provides plain lookups (`findByNormalizedCompanyName`, `findByContactEmail`). A future database repository therefore cannot define "similar" differently from the in-memory one.
+- Text normalization (company name, email, external ID) is in `normalize.ts`. It is shared by the policy and the repository.
 - Errors: a `DuplicateMerchantError` is mapped to HTTP 409 by an error-handling middleware. Validation failures return 400 with per-field messages.
 
 ## Behaviour decisions
@@ -60,6 +62,8 @@ Similarity rules (deliberately conservative):
 - **Annoyed users:** every false positive makes a legitimate user stop and confirm. Rules stay strict (equality after normalization, no fuzzy distance), and the response says which rule matched so the user can decide quickly. Shared mailboxes (`info@`, `ops@` of a group of companies) will trigger `SAME_CONTACT_EMAIL` for real distinct merchants. Track how often warnings are overridden, and loosen or drop a rule that is nearly always overridden.
 - **API surface:** one more request field, one more error code and more tests.
 - **Information exposure:** the warning reveals that other merchants exist and their names and IDs. This is acceptable for an internal onboarding tool. If the endpoint were exposed to merchants themselves, the warning should be removed or reduced.
+
+**Known limitation: concurrent similar registrations.** The similarity check is a read followed by a separate insert, and it is not atomic. If two similar registrations with different IDs arrive at the same moment (for example `Northstar Ltd` as `northstar-001` and `Northstar Limited` as `northstar-002`), both can run the check before either is saved. Both then pass without a warning and both are stored. The ID check does not have this problem because `create()` checks and inserts in one step. Closing the gap would need a lock or a unique constraint on the normalized company name, which would turn the warning into a hard block. It is accepted because the warning is advisory, the case is rare, and the result is a missed warning, not corrupted data.
 
 **Not done:** storing a `similarTo` reference on the confirmed merchant for later review, and an `Idempotency-Key` header for safe retries.
 

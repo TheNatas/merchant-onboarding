@@ -22,18 +22,6 @@ export function normalizeCompanyName(name: string): string {
 
 export const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 
-export type SimilarityReason = 'SAME_COMPANY_NAME' | 'SAME_CONTACT_EMAIL';
-
-export function similarityReasons(
-  a: { companyName: string; contactEmail: string },
-  b: { companyName: string; contactEmail: string },
-): SimilarityReason[] {
-  const reasons: SimilarityReason[] = [];
-  if (normalizeCompanyName(a.companyName) === normalizeCompanyName(b.companyName)) {
-    reasons.push('SAME_COMPANY_NAME');
-  }
-  if (normalizeEmail(a.contactEmail) === normalizeEmail(b.contactEmail)) {
-    reasons.push('SAME_CONTACT_EMAIL');
-  }
-  return reasons;
-}
+/** Key used to compare externalMerchantId values (case-insensitive, trimmed). */
+export const normalizeExternalId = (externalMerchantId: string): string =>
+  externalMerchantId.trim().toLowerCase();
