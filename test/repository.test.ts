@@ -17,6 +17,15 @@ describe('InMemoryMerchantRepository', () => {
     await expect(repo.create(make('a-1'))).rejects.toBeInstanceOf(DuplicateMerchantError);
   });
 
+  it('keeps the original record when a duplicate is rejected', async () => {
+    const repo = new InMemoryMerchantRepository();
+    const original = make('a-1');
+    await repo.create(original);
+    await expect(repo.create({ ...make('A-1'), companyName: 'Impostor Inc' })).rejects.toBeInstanceOf(DuplicateMerchantError);
+    await expect(repo.findByNormalizedCompanyName('northstar')).resolves.toEqual([original]);
+    await expect(repo.findByNormalizedCompanyName('impostor')).resolves.toEqual([]);
+  });
+
   it('rejects a duplicate that differs only by case', async () => {
     const repo = new InMemoryMerchantRepository();
     await repo.create(make('Northstar-001'));

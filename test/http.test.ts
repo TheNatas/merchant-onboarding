@@ -61,6 +61,25 @@ describe('POST /merchants', () => {
     expect(res.body.error).toBe('DUPLICATE_MERCHANT');
   });
 
+  it('leaves the original merchant unchanged after a conflicting duplicate', async () => {
+    const app = newApp();
+    const original = (await request(app).post('/merchants').send(valid).expect(201)).body;
+    await request(app)
+      .post('/merchants')
+      .send({ companyName: 'Impostor Inc', contactEmail: 'evil@example.com', country: 'US', externalMerchantId: 'NORTHSTAR-001', confirmSimilar: true })
+      .expect(409);
+    // The ID is still taken, and a similar request still reveals the original, unmodified record.
+    const res = await request(app).post('/merchants').send({ ...valid, externalMerchantId: 'northstar-002' }).expect(409);
+    expect(res.body.similarMerchants).toEqual([
+      {
+        id: original.id,
+        companyName: original.companyName,
+        externalMerchantId: original.externalMerchantId,
+        reasons: ['SAME_COMPANY_NAME', 'SAME_CONTACT_EMAIL'],
+      },
+    ]);
+  });
+
   it('returns 409 for a case-variant or whitespace-padded duplicate', async () => {
     const app = newApp();
     await request(app).post('/merchants').send({ ...valid, externalMerchantId: 'Northstar-001' }).expect(201);
